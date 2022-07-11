@@ -153,5 +153,3 @@ https://github.com/planetarium/9cscan.com
 ## License
 
 Apache 2.0
-# 9cscan-cloud
-# 9cscan-cloud
