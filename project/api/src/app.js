@@ -13,7 +13,7 @@ app.get('/blocks', async function(req, res) {
 
 app.get('/blocks/:hashOrIndex', async function(req, res) {
   if (req.params.hashOrIndex.length == 64) {
-    res.send(await dynamo.getBlockByHash(req.params.hashOrIndex));
+    res.send(await dynamo.getBlockByHash(req.params.hashOrIndex.toLowerCase()));
   } else {
     res.send(await dynamo.getBlockByIndexWithTxs(req.params.hashOrIndex));
   }
@@ -99,9 +99,9 @@ app.get('/transactions/:id', async function(req, res) {
 
 app.get('/account', async function(req, res) {
   if (req.query.address) {
-    res.send(await dynamo.getAccountStates(req.query.address))
+    res.send(await dynamo.getAccountStates(req.query.address.toLowerCase()))
   } else if (req.query.avatar) {
-    res.send(await dynamo.getAccountStatesByAvatar(req.query.avatar))
+    res.send(await dynamo.getAccountStatesByAvatar(req.query.avatar.toLowerCase()))
   }
 });
 
@@ -110,7 +110,7 @@ app.get('/blocks/:index/transactions', async function(req, res) {
 });
 
 app.get('/accounts/:account/transactions', async function(req, res) {
-  res.send(await dynamo.getInvolvedTransactions({account:req.params.account, ...req.query}));
+  res.send(await dynamo.getInvolvedTransactions({account:req.params.account.toLowerCase(), ...req.query}));
 });
 
 const CMC_KEYS = JSON.parse(process.env.CMC_KEYS || '{}')

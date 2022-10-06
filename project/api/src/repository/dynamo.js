@@ -120,13 +120,13 @@ class Fetcher {
     async getTransactionById(id) {
         return new Promise(async (resolve, reject) => { 
             try {
-                let data = await client.query({TableName: prefix("Transaction"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "id"}, ExpressionAttributeValues: {":id": id}}).promise()
+                let data = await client.query({TableName: prefix("Transaction"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "id"}, ExpressionAttributeValues: {":id": id.toLowerCase()}}).promise()
                 resolve(data['Items'][0])
             } catch(e) {
                 //retry
                 setTimeout(async () => {
                     try {
-                        let data = await client.query({TableName: prefix("Transaction"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "id"}, ExpressionAttributeValues: {":id": id}}).promise()
+                        let data = await client.query({TableName: prefix("Transaction"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "id"}, ExpressionAttributeValues: {":id": id.toLowerCase()}}).promise()
                         resolve(data['Items'][0])
                     } catch(e) {
                         reject(e)
@@ -483,7 +483,7 @@ class Fetcher {
             TableName: prefix("Account"),
             KeyConditionExpression: "address = :address",
             ExpressionAttributeValues: {
-                ":address": address,
+                ":address": address.toLowerCase(),
             },
             ScanIndexForward: false,
             Limit: 100
