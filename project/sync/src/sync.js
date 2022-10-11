@@ -29,6 +29,15 @@ class Sync {
             // 주소까지 계속 갱신해줘야해서 여러가지 성능 저하를 유발함. UI에서 account를 접근할때 갱신해주기때문에
             // 굳이 미리 갱신하지 않기로 함.
             // addresses.push(..._.flatten(block.transactions.map(t => t.updatedAddresses)))
+
+            //일부 자동 갱신 서포트
+            for (const tx of block.transactions) {
+                if (tx.updatedAddresses && tx.updatedAddresses.length > 0) {
+                    if (tx.actions.find(a => a['typeId'].startsWith('transfer')) || tx.updatedAddresses.length < 3) {
+                        addresses.push(...tx.updatedAddresses)
+                    }
+                }
+            }
         }
 
         addresses = _.uniq(addresses)
@@ -46,9 +55,8 @@ class Sync {
     }
 
     async syncBlock(block, endpointIndex = 0, isLatestSync = true) {
-        let accounts = await this.fetchAccounts(endpointIndex, block, isLatestSync)
-        await dynamo.saveAccount(accounts)
         await dynamo.save(block)
+        await dynamo.saveAccount(await this.fetchAccounts(endpointIndex, block, isLatestSync))
         if (isLatestSync) {
             await dynamo.saveLatestBlock(block)
         }

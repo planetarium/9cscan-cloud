@@ -13,6 +13,11 @@ describe('Blocks', function() {
     let {body:body2} = await request.get('/blocks?limit=5&after='+body1.before)
     test.assert.equal(body1.blocks.length - 1, body2.blocks.length)
   });
+
+  it('Get Account Tx Count', async function() {
+    let {body} = await request.get('/accounts/0x3217f757064cd91caba40a8ef3851f4a9e5b4985/transactions/count')
+    console.log(body)
+  })
   
   it('Latest & Paging', async function() {
     let before = ''

@@ -6,8 +6,8 @@ const {Semaphore} = require("async-mutex")
 const fs = require("fs")
 const {fail} = require("unit.js/src/helpers");
 
-let startIndex = 3155972
-const endIndex = 4252276
+let startIndex = 5114272
+const endIndex = 5114280
 const FILENAME = '.manually.json'
 try {
     let data = JSON.parse(fs.readFileSync(FILENAME, 'utf8'))
