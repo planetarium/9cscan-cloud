@@ -113,6 +113,12 @@ app.get('/accounts/:account/transactions', async function(req, res) {
   res.send(await dynamo.getInvolvedTransactions({account:req.params.account.toLowerCase(), ...req.query}));
 });
 
+//count up to 1000
+app.get('/accounts/:account/transactions/count', async function(req, res) {
+  const {Count} = await dynamo.countAccountTransactions(req.params.account.toLowerCase());
+  res.send({count: Count})
+});
+
 const CMC_KEYS = JSON.parse(process.env.CMC_KEYS || '{}')
 app.get('/price', async function(req, res) {
   let apiKeys = Object.values(CMC_KEYS)

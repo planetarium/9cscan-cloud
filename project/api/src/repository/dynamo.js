@@ -393,7 +393,19 @@ class Fetcher {
         return {transactions, before: blockId - 20}
     }
     
-    
+    async countAccountTransactions(account) {
+        let param = {
+            TableName: prefix("AccountTransaction"),
+            IndexName: "address-index",
+            KeyConditionExpression: "address = :account",
+            ExpressionAttributeValues: {
+                ":account": account,
+            },
+            Select: 'COUNT',
+            Limit:1000
+        }
+        return await client.query(param).promise()
+    }
     async getInvolvedTransactions({account, action, before, limit=20}) {
         let param = {
             TableName: prefix("AccountTransaction"),
