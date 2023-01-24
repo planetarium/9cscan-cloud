@@ -9,7 +9,7 @@ const EventBridge = require('./bootstrap/eventbridge/EventBridge')
 const {zipDirectory} = require('./lib/zipDir')
 const {config, loadDeployResult, exportDeployResult} = require("./config")
 
-let namespaced = (name) => config.namespace ? `${name}-${config.namespace}` :  name
+let namespaced = (name) => config.namespace ? `${name}-${config.namespace.replaceAll('.','-')}` :  name
 
 class Command {
     constructor() {

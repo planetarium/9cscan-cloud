@@ -10,8 +10,7 @@ class Dynamodb {
     }
     getPrefix() {
         if (this.config.namespace && this.config.namespace.length > 0) {
-            let [a, ...b] = this.config.namespace
-            return a.toUpperCase() + b.join('')
+            return this.config.namespace
         }
         return ''
     }
