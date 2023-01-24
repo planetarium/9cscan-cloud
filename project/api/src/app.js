@@ -105,6 +105,14 @@ app.get('/account', async function(req, res) {
   }
 });
 
+app.get('/avatars', async function(req, res) {
+  if (req.query.name && req.query.name.length >= 2) {
+    res.send(await dynamo.searchAvatarsByName(req.query.name.toLowerCase()))
+  } else {
+    res.send([])
+  }
+});
+
 app.get('/blocks/:index/transactions', async function(req, res) {
   res.send(await dynamo.getTransactionsByBlock(req.params.index));
 });

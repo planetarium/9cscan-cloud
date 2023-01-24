@@ -45,6 +45,7 @@ class NccDatasource {
       if (agent) {
         for (let avatar of agent['avatarStates']) {
           rows.push({
+            type: 'AVATAR',
             address: address.toLowerCase(),
             avatarAddress: avatar && avatar.address && avatar.address.toLowerCase(),
             avatarName: avatar && avatar.name && avatar.name.toLowerCase(),
@@ -55,6 +56,7 @@ class NccDatasource {
       } else {
         //no avatar address
         rows.push({
+          type: 'ACCOUNT',
           address: address.toLocaleLowerCase(),
           avatarAddress: 'NOAVATAR',
           goldBalance
