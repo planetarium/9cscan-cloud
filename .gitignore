@@ -1,6 +1,7 @@
 .idea
 .config
 .deploy
+*.conbus
 node_modules
 project/*.zip
 .manually.json
