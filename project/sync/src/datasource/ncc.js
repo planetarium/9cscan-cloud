@@ -48,6 +48,7 @@ class NccDatasource {
           rows.push({
             address: address.toLowerCase(),
             avatarAddress: avatar && avatar.address && avatar.address.toLowerCase(),
+            avatarName: avatar && avatar.name && avatar.name.toLowerCase(),
             avatar,
             goldBalance,
           })
