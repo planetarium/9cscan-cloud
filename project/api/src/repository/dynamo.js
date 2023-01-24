@@ -469,7 +469,25 @@ class Fetcher {
         }
         return response
     }
-    
+
+    async searchAvatarsByName(avatarName) {
+        let param = {
+            TableName: prefix("Account"),
+            IndexName: "avatarname-index",
+            KeyConditionExpression: "#type = :type AND begins_with(#name, :name)",
+            ExpressionAttributeNames  : {"#type": "type", "#name": "avatarName"},
+            ExpressionAttributeValues: {
+                ":type": 'AVATAR',
+                ":name": avatarName
+            },
+            ScanIndexForward: false,
+            Limit: 20
+        }
+
+        let {Items} = await client.query(param).promise()
+        return Items
+    }
+
     async getAccountStatesByAvatar(avatarAddress) {
         let param = {
             TableName: prefix("Account"),
@@ -487,7 +505,7 @@ class Fetcher {
         if (Items && Items[0] && Items[0].address) {
             return await this.getAccountStates(Items[0].address)
         }
-        return null    
+        return null
     }
     
     async getAccountStates(address) {
