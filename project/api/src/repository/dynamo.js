@@ -520,7 +520,14 @@ class Fetcher {
         }
         
         let {Items} = await client.query(param).promise()
-        return Items
+
+        //filter the latest only
+        const maxRefreshBlockIndex = _.max(
+          Items.filter(({refreshBlockIndex}) => refreshBlockIndex),
+          ({refreshBlockIndex}) => refreshBlockIndex
+        )['refreshBlockIndex']
+
+        return Items.filter(({refreshBlockIndex}) => refreshBlockIndex === maxRefreshBlockIndex)
     }
     
     async getCache(cacheKey) {
