@@ -32,6 +32,13 @@ class NccDatasource {
                   name
                   tail
                   updatedAt
+                  inventory {
+                    equipments {
+                      id
+                      itemSubType
+                      equipped
+                    }
+                  }
                 }
               }
             }
@@ -45,6 +52,9 @@ class NccDatasource {
       let rows = []
       if (agent) {
         for (let avatar of agent['avatarStates']) {
+          if (avatar && avatar.inventory && avatar.inventory.equipments && avatar.inventory.equipments.length > 0) {
+            avatar.inventory.equipments = avatar.inventory.equipments.filter(({equipped}) => equipped)
+          }
           rows.push({
             type: 'AVATAR',
             address: address.toLowerCase(),
