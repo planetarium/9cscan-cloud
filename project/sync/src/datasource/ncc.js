@@ -132,14 +132,11 @@ class NccDatasource {
           chainQuery {
             blockQuery {
               block(index:$index) {
-                difficulty
                 index
                 hash
                 miner
-                nonce
                 stateRootHash
                 timestamp
-                totalDifficulty
                 transactions {
                   actions {
                     raw
