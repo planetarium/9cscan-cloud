@@ -283,7 +283,12 @@ class DynamoRepository {
                         //transfer_asset# 의 경우 recipient를 updatedAddress에 강제로 넣어줌.
                         try {
                             if (action['typeId'].startsWith('transfer') && actionData['values'] && actionData['values']['recipient']) {
-                                tx.updatedAddresses = _.uniq([...(tx.updatedAddresses || []), actionData['values']['recipient']])
+                                const recipient = actionData['values']['recipient']
+                                const found = tx.updatedAddresses.find(addr => addr.toLowerCase() === recipient.toLowerCase())
+                                if (!found) {
+                                    tx.updatedAddresses = [...tx.updatedAddresses, actionData['values']['recipient']]
+                                }
+
                             }
                         } catch(e) {
                             console.log(e)
