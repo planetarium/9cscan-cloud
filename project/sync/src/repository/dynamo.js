@@ -280,6 +280,15 @@ class DynamoRepository {
                         let actionData = parseAction(action)
                         action['typeId'] = actionData['type_id']
 
+                        //transfer_asset# 의 경우 recipient를 updatedAddress에 강제로 넣어줌.
+                        try {
+                            if (action['typeId'].startsWith('transfer') && actionData['values'] && actionData['values']['recipient']) {
+                                tx.updatedAddresses = _.uniq([...(tx.updatedAddresses || []), actionData['values']['recipient']])
+                            }
+                        } catch(e) {
+                            console.log(e)
+                        }
+
                         //Dynamo 저장 한계 (400KB) 때문에 액션 밸류가 10KB가 넘으면 타입만 저장
                         if (JSON.stringify(action).length > 10240) {
                             delete action['raw']
