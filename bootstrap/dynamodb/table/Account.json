@@ -8,6 +8,14 @@
         {
             "AttributeName": "avatarAddress",
             "AttributeType": "S"
+        },
+        {
+            "AttributeName": "avatarName",
+            "AttributeType": "S"
+        },
+        {
+            "AttributeName": "type",
+            "AttributeType": "S"
         }
     ],
     "GlobalSecondaryIndexes": [

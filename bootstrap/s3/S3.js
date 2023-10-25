@@ -8,7 +8,16 @@ class S3 {
     }
 
     async createStaticWebBucket(name) {
-        await this.s3.createBucket({Bucket: name}).promise()
+        await this.s3.createBucket({Bucket: name, ObjectOwnership: "ObjectWriter"}).promise()
+        await this.s3.putPublicAccessBlock({
+            Bucket: name,
+            PublicAccessBlockConfiguration: {
+                BlockPublicAcls: false,
+                IgnorePublicAcls: false,
+                BlockPublicPolicy: false,
+                RestrictPublicBuckets: false,
+            },
+        }).promise();
         await this.s3.putBucketWebsite({
             Bucket: name,
             WebsiteConfiguration: {

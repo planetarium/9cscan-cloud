@@ -55,7 +55,7 @@ class Lambda {
             Role: this.config.iamRoleArn,
             Handler: "index.get",
             MemorySize: '128',
-            Runtime: 'nodejs12.x',
+            Runtime: 'nodejs18.x',
             Timeout: '15',
             ...options
         }).promise()

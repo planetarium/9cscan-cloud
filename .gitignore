@@ -2,6 +2,7 @@
 .config
 .deploy
 *.conbus
+*.config.planet*
 node_modules
 project/*.zip
 .manually.json

@@ -9,8 +9,8 @@ class Dynamodb {
         this.client = new AWS.DynamoDB(config)
     }
     getPrefix() {
-        if (this.config.namespace && this.config.namespace.length > 0) {
-            return this.config.namespace
+        if (this.config.tablePrefix && this.config.tablePrefix.length > 0) {
+            return this.config.tablePrefix
         }
         return ''
     }
