@@ -6,8 +6,8 @@ const {Semaphore} = require("async-mutex")
 const fs = require("fs")
 const {fail} = require("unit.js/src/helpers");
 
-let startIndex = 5114272
-const endIndex = 5114280
+let startIndex = 8448704
+const endIndex = 8448705
 const FILENAME = '.manually.json'
 try {
     let data = JSON.parse(fs.readFileSync(FILENAME, 'utf8'))
@@ -24,7 +24,9 @@ try {
     while(i < endIndex) {
         try {
             console.clear()
+            console.log('try ', i, endpointIndex)
             let block = await ncc.fetchBlock(i, endpointIndex)
+            console.log('block', block)
             if (block.index) {
                 let elapsed = new Date - ts
                 let msPerBlock = i > startIndex ? elapsed / (i - startIndex) : 0

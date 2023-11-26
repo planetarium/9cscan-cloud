@@ -3,6 +3,7 @@
 .deploy
 *.conbus
 *.config.planet*
+*.config.internal*
 node_modules
 project/*.zip
 .manually.json

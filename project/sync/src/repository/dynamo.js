@@ -54,18 +54,23 @@ class DynamoRepository {
     async saveBlock(block) {
         console.log('Start Save Block')
         console.time('Save Block')
-        block.hash = block.hash.toLowerCase()
-        block.miner = block.miner.toLowerCase()
-        block.transactionIds = block.transactions.map(t => t.id.toLowerCase())
-        block.transactionCount = block.transactions.length
-        block.updateTime = new Date().toISOString()
-        block['type'] = 'B'
+        try {
+            block.hash = block.hash.toLowerCase()
+            block.miner = block.miner.toLowerCase()
+            block.transactionIds = block.transactions.map(t => t.id.toLowerCase())
+            block.transactionCount = block.transactions.length
+            block.updateTime = new Date().toISOString()
+            block['type'] = 'B'
 
-
-        await this.client.put({
-            TableName: prefix("Block"),
-            Item: block
-        }).promise()
+            await this.client.put({
+                TableName: prefix("Block"),
+                Item: {...block, transactions: []}
+            }).promise()
+        } catch(e) {
+            console.error(block)
+            console.error(e)
+            throw e
+        }
         console.timeEnd('Save Block')
     }
 
@@ -114,6 +119,7 @@ class DynamoRepository {
                 tx.id = tx.id.toLowerCase()
                 tx.signer = tx.signer.toLowerCase()
                 tx.blockIndex = block.index
+                tx.blockTimestamp = block.timestamp
                 tx.updateTime = new Date().toISOString()
                 tx.updatedAddresses = tx.updatedAddresses.map(addr => addr.toLowerCase())
             })

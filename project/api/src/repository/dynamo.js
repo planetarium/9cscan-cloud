@@ -69,7 +69,11 @@ class Fetcher {
     }
     
     async getBlockByIndexWithTxs(index) {
-        return this.getBlockByIndex(index, BLOCK_FULL_ATTRS)
+        const block = await this.getBlockByIndex(index, BLOCK_FULL_ATTRS)
+        if (block.transactions.length === 0 && block.transactionCount > 0) {
+            block.transactions = await this.getTransactionsByBlock(index)
+        }
+        return block;
     }
     
     async getBlockByIndex(index, attrs = BLOCK_LIST_ATTRS) {
@@ -271,14 +275,15 @@ class Fetcher {
     }
     
     async getTransactionsByBlock(blockIndex) {
-        let {Items} = await client.query({TableName: prefix("Block"),
-            ProjectionExpression: 'transactions',
-            KeyConditionExpression: "#index = :index", 
-            ExpressionAttributeNames  : {"#index": "index"}, 
-            ExpressionAttributeValues: {":index": blockIndex * 1}}).promise()
-        
-        if (Items[0] && Items[0].transactions && Items[0].transactions.length > 0) {
-            return _.sortBy(Items[0].transactions, tx => -new Date(tx['timestamp']))
+        let {Items} = await client.query({TableName: prefix("Transaction"),
+            IndexName: "block-index",
+            KeyConditionExpression: "#blockIndex = :blockIndex",
+            ExpressionAttributeNames  : {"#blockIndex": "blockIndex"},
+            ExpressionAttributeValues: {":blockIndex": blockIndex * 1}}).promise()
+
+        let transactions = await this.getTransactionsByIds(Items.map(item => item.id))
+        if (transactions && transactions.length > 0) {
+            return _.sortBy(transactions, tx => -tx['nonce'])
         }
         
         return []
@@ -304,7 +309,7 @@ class Fetcher {
     async getTransactionsByActionType({action, before, limit = 20}) {
         let param = {
             TableName: prefix("Action"),
-            IndexName: "typeId-index",
+            IndexName: "typeId-blockIndex-index",
             KeyConditionExpression: "#typeId = :typeId",
             ProjectionExpression: "txIdSeq",
             ExpressionAttributeNames  : {"#typeId": "typeId"},
@@ -318,8 +323,8 @@ class Fetcher {
             let {Items} = await client.query({
                 TableName: prefix("Action"),
                 KeyConditionExpression: "#txIdSeq = :before",
-                ProjectionExpression: "txIdSeq, #timestamp, typeId",
-                ExpressionAttributeNames  : {"#txIdSeq": "txIdSeq", "#timestamp": "timestamp"},
+                ProjectionExpression: "txIdSeq, blockIndex, typeId",
+                ExpressionAttributeNames  : {"#txIdSeq": "txIdSeq"},
                 ExpressionAttributeValues: {
                     ":before": before
                 }
@@ -358,7 +363,7 @@ class Fetcher {
         } else {
             blockId = await this.getLatestBlockIndex()
         }
-        
+
         let transactions = []
         for (let i = 0; i < 20; i++) {
             let txs = await this.getTransactionsByBlock(blockId - i)
