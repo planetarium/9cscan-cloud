@@ -23,9 +23,4 @@ module.exports = function() {
 
     }
     process.env.region = config['region']
-    if (config['namespace']) {
-        let [a, ...b] = config['namespace']
-        process.env.tablePrefix = a.toUpperCase() + b.join('')
-    }
-
 }
