@@ -285,26 +285,26 @@ class DynamoRepository {
                     .forEach(action => {
                         let actionData = parseAction(action)
                         action['typeId'] = actionData['type_id']
-
                         //transfer_asset# 의 경우 recipient를 updatedAddress에 강제로 넣어줌.
                         try {
                             if (action['typeId'].startsWith('transfer') && actionData['values'] && actionData['values']['recipient']) {
-                                const recipient = actionData['values']['recipient']
-                                const found = tx.updatedAddresses.find(addr => addr.toLowerCase() === recipient.toLowerCase())
-                                if (!found) {
-                                    tx.updatedAddresses = [...tx.updatedAddresses, actionData['values']['recipient']]
-                                }
+                                tx.updatedAddresses = [...tx.updatedAddresses, actionData['values']['recipient']]
 
                             } else if (action['typeId'].startsWith('mint_assets') && actionData['values'] && actionData['values'].length >= 2) {
                                 for (let i = 1; i < actionData['values'].length; i++) {
-                                    const mint = actionData['values'][i]
-                                    const recipient = mint[0]
-                                    const found = tx.updatedAddresses.find(addr => addr.toLowerCase() === recipient.toLowerCase())
-                                    if (!found) {
-                                        tx.updatedAddresses = [...tx.updatedAddresses, recipient]
-                                    }
+                                    const recipient = actionData['values'][i][0]
+                                    tx.updatedAddresses = [...tx.updatedAddresses, recipient]
                                 }
+                            } else if (action['typeId'].startsWith('register_product') && actionData['values'] && actionData['values']['a']) {
+                                const avatar = actionData['values']['a']
+                                tx.updatedAddresses = [...tx.updatedAddresses, avatar]
+                            } else if (action['typeId'].startsWith('buy_product') && actionData['values'] && actionData['values']['p']) {
+                                const avatar = actionData['values']['a']
+                                const seller = actionData['values']['p'][0][2]
+                                tx.updatedAddresses = [...tx.updatedAddresses, seller, avatar]
                             }
+
+                            tx.updatedAddresses = _.uniq(tx.updatedAddresses)
                         } catch(e) {
                             console.log(e)
                         }
