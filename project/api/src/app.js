@@ -19,6 +19,39 @@ app.get('/blocks/:hashOrIndex', async function(req, res) {
   }
 });
 
+app.get('/arena', async (req, res) => {
+  const lastBlockIndex = await ncc.getLatestBlockIndex();
+
+  let arenaList = [];
+  let currentBlockIndex = 1;
+  while (currentBlockIndex <= lastBlockIndex) {
+    const result = await ncc.getBattleArenaInfo(currentBlockIndex);
+    arenaList = [...arenaList, result];
+    currentBlockIndex = result.endBlockIndex + 1;
+  }
+
+  res.json(arenaList);
+});
+
+app.get('/arena/:championshipId/:round', async (req, res) => {
+  const {championshipId, round} = req.params;
+  let arenaParticipants = await ncc.getArenaParticipants(parseInt(championshipId, 10), parseInt(round, 10));
+
+  let {page, limit} = req.query;
+  page = parseInt(page, 10) || 1;
+  limit = parseInt(limit, 10) || 10;
+  arenaParticipants = arenaParticipants.slice((page - 1) * limit, page * limit);
+
+  const avatarAddresses = arenaParticipants.map((participant) => participant.avatarAddress);
+  const imageUrls = await ncc.getAvatarImages(avatarAddresses);
+  arenaParticipants = arenaParticipants.map((participant, index) => {
+    participant.imageUrl = imageUrls[index].imageUrl;
+    return participant;
+  });
+
+  res.json(arenaParticipants);
+});
+
 app.get('/status', async function(req, res) {
   let nodes = []
   let promises = []
