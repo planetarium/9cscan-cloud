@@ -198,6 +198,128 @@ class NccDatasource {
     }
     return null
   }
+
+  async getBattleArenaInfo(index, endpointIndex = 1) {
+    try {
+      let endpoint = this.endpoints[endpointIndex]
+      let {data} = await axios({
+        method: 'POST',
+        url: endpoint,
+        data: {
+          variables:{ index },
+          query: `query getBattleArenaInfo($index: Long!) {
+            battleArenaInfo(index: $index) {
+              championshipId
+              round
+              startBlockIndex
+              endBlockIndex
+              arenaType
+            }
+          }`,
+        }
+      });
+      return data['data']['battleArenaInfo'];
+    } catch(e) {
+      console.log(e);
+    }
+  }
+  async getArenaParticipants(championshipId, round, endpointIndex = 1) {
+    try {
+      let endpoint = this.endpoints[endpointIndex]
+      let {data} = await axios({
+        method: 'POST',
+        url: endpoint,
+        data: {
+          variables:{ championshipId, round },
+          query: `query getBattleArenaInfo($championshipId: Int!, $round: Int!) {
+            battleArenaRanking(championshipId: $championshipId, round: $round) {
+              name
+              ranking
+              avatarAddress
+              score
+              avatarLevel
+              cp
+              winCount
+              lossCount
+              purchasedTicketCount
+            }
+          }`,
+        },
+      });
+      return data['data']['battleArenaRanking'];
+    } catch(e) {
+      console.log(e)
+    }
+  }
+  async getAvatarImages(avatarAddresses = [], endpointIndex = 0) {
+    try {
+      let endpoint = this.endpoints[endpointIndex]
+      const innerQuery = avatarAddresses.map((avatarAddress, index) => {
+        return `avatar${index}: avatar(avatarAddress: "${avatarAddress}") {
+          inventory {
+            equipments(equipped: true, itemSubType: ARMOR) {
+              id
+              itemType
+              itemSubType
+              equipped
+            }
+          }
+        }`;
+      }).join('\n');
+
+      let {data} = await axios({
+        method: 'POST',
+        url: endpoint,
+        data: {
+          query: `query getAvatarImages {
+            stateQuery { ${innerQuery} }
+          }`,
+        }
+      });
+
+      const avatars = data['data']['stateQuery'];
+      return avatarAddresses.map((avatarAddress, index) => {
+        const armorId = avatars[`avatar${index}`].inventory.equipments[0]?.id ?? '10200000';
+        return {
+          avatarAddress,
+          imageUrl: `https://raw.githubusercontent.com/planetarium/NineChronicles/v200020-1/nekoyume/Assets/Resources/UI/Icons/Item/${armorId}.png`,
+        };
+      });
+    } catch(e) {
+      console.log(e)
+    }
+  }
+
+  async getArenaParticipantsByAvatarAddress(avatarAddress = '0x0000000000000000000000000000000000000000', endpointIndex = 0) {
+    try {
+      let endpoint = this.endpoints[endpointIndex]
+      let avatarAddress = '';
+      let {data} = await axios({
+        method: 'POST',
+        url: endpoint,
+        data: {
+          variables: { avatarAddress },
+          query: `query getArena($avatarAddress: Address) {
+            stateQuery {
+              arenaParticipants(avatarAddress: $avatarAddress) {
+                avatarAddr
+                rank
+                nameWithHash
+                cp
+                score
+                winScore
+                loseScore
+              }
+            }
+          }`,
+        }
+      });
+
+      return data['data']['stateQuery']['arenaParticipants'];
+    } catch(e) {
+      console.log(e)
+    }
+  }
 }
 
 module.exports = new NccDatasource()
