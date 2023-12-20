@@ -22,6 +22,7 @@ class Command {
 
         this.apiName = namespaced('9cscan-api')
         this.syncName = namespaced('9cscan-sync')
+        this.shopHistoryName = namespaced('9cscan-shop-history')
         this.wsName = namespaced('9cscan-ws')
         this.checkerName = namespaced('9cscan-checker')
     }
@@ -88,6 +89,18 @@ class Command {
     }
 
     /**
+     * dynamo trigger -> [Lambda]
+     */
+    async createShopHistory() {
+        let {arn} = await this.lambda.createFunction(this.shopHistoryName)
+        await this.lambda.updateEnvValue(this.shopHistoryName, {
+            'region': config['region'],
+            'tablePrefix': this.dynamo.getPrefix(),
+            'marketAPI': config['marketAPI']
+        })
+    }
+
+    /**
      * [EventBridge : call every 1m] -> [Lambda]
      */
     async createChecker() {
@@ -119,6 +132,12 @@ class Command {
         let zipPath = __dirname + '/project/checker.zip'
         await zipDirectory(__dirname + '/project/checker', zipPath)
         await this.lambda.uploadFunction(this.checkerName, zipPath)
+    }
+
+    async deployShopHistory() {
+        let zipPath = __dirname + '/project/shopHistory.zip'
+        await zipDirectory(__dirname + '/project/shopHistory', zipPath)
+        await this.lambda.uploadFunction(this.shopHistoryName, zipPath)
     }
 
     async checkDeployedAPI() {

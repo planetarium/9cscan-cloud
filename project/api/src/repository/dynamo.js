@@ -534,7 +534,164 @@ class Fetcher {
 
         return Items.filter(({refreshBlockIndex}) => refreshBlockIndex === maxRefreshBlockIndex)
     }
-    
+
+    async getShopHistory({itemSubType, grade, ticker, itemId, options, level, before, limit = 20}) {
+        let param = {
+            TableName: prefix("ShopHistory"),
+            IndexName: "block-index",
+            KeyConditionExpression: "#type = :type",
+            ExpressionAttributeNames  : {"#type": "type"},
+            ExpressionAttributeValues: {
+                ":type": 'BUY'
+            },
+            ScanIndexForward: false,
+            Limit: limit
+        }
+
+        if (itemSubType) {
+            if (grade) {
+                if (options && level) {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-level-options-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade_level_options"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}_${level}_${options}`},
+                    }
+                } else if (options) {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-options-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade_options"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}_${options}`},
+                    }
+                } else if (level) {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-level-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade_level"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}_${level}`},
+                    }
+                } else {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}`},
+                    }
+                }
+            } else {
+                param = {
+                    ...param,
+                    IndexName: "itemSubType-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemSubType"},
+                    ExpressionAttributeValues: {":value": Number(itemSubType)},
+                }
+            }
+        } else if (itemId) {
+            if (options && level) {
+                param = {
+                    ...param,
+                    IndexName: "itemId-level-options-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId_level_options"},
+                    ExpressionAttributeValues: {":value": `${itemId}_${level}_${options}`},
+                }
+            } else if (options) {
+                param = {
+                    ...param,
+                    IndexName: "itemId-options-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId_options"},
+                    ExpressionAttributeValues: {":value": `${itemId}_${options}`},
+                }
+            } else if (level) {
+                param = {
+                    ...param,
+                    IndexName: "itemId-level-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId_level"},
+                    ExpressionAttributeValues: {":value": `${itemId}_${level}`},
+                }
+            } else {
+                param = {
+                    ...param,
+                    IndexName: "itemId-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId"},
+                    ExpressionAttributeValues: {":value": Number(itemId)},
+                }
+            }
+        } else if (ticker) {
+            param = {
+                ...param,
+                IndexName: "ticker-index",
+                KeyConditionExpression: "#key = :value",
+                ExpressionAttributeNames  : {"#key": "ticker"},
+                ExpressionAttributeValues: {":value": ticker},
+            }
+        }
+
+        if (before) {
+            param['ExclusiveStartKey'] = JSON.parse(before)
+        }
+
+        let {Items, LastEvaluatedKey} = await client.query(param).promise()
+
+        let response = {}
+        let txIds = Items.map(item => item.txId)
+
+        let historyItems = await this.getShopHistoryByTxs(txIds)
+
+        response['items'] = historyItems
+        if (LastEvaluatedKey) {
+            response['before'] = JSON.stringify(LastEvaluatedKey)
+        }
+
+        return response
+    }
+
+    async getShopHistoryByTxs(ids) {
+        let txs = []
+
+        await forEachSemaphore(ids, async (id) => {
+            let job = this.getShopHistoryByTx(id)
+            txs.push(job)
+            await job
+        }, 10)
+
+        for (let i = 0; i < txs.length; i++) {
+            txs[i] = await txs[i]
+        }
+
+        return txs
+    }
+
+    async getShopHistoryByTx(id) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let data = await client.query({TableName: prefix("ShopHistory"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "txId"}, ExpressionAttributeValues: {":id": id.toLowerCase()}}).promise()
+                resolve(data['Items'][0])
+            } catch(e) {
+                //retry
+                setTimeout(async () => {
+                    try {
+                        let data = await client.query({TableName: prefix("ShopHistory"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "txId"}, ExpressionAttributeValues: {":id": id.toLowerCase()}}).promise()
+                        resolve(data['Items'][0])
+                    } catch(e) {
+                        reject(e)
+                    }
+                }, 100)
+            }
+
+        })
+    }
+
+
     async getCache(cacheKey) {
         let {Items} = await client.query({
             TableName: prefix("Cache"),

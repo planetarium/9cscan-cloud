@@ -300,23 +300,23 @@ class DynamoRepository {
                                 tx.updatedAddresses = [...tx.updatedAddresses, avatar]
                             } else if (action['typeId'].startsWith('buy_product') && actionData['values'] && actionData['values']['p']) {
                                 const avatar = actionData['values']['a']
-                                const seller = actionData['values']['p'][0][2]
-                                tx.updatedAddresses = [...tx.updatedAddresses, seller, avatar]
+
+                                const sellers = actionData['values']['p'].map(p => p[2])
+                                tx.updatedAddresses = [...tx.updatedAddresses, ...sellers, avatar]
                             }
 
-                            tx.updatedAddresses = _.uniq(tx.updatedAddresses)
+                            tx.updatedAddresses = _.uniq(tx.updatedAddresses.map(v => v.toLowerCase()))
                         } catch(e) {
                             console.log(e)
                         }
 
-                        //Dynamo 저장 한계 (400KB) 때문에 액션 밸류가 10KB가 넘으면 타입만 저장
-                        if (JSON.stringify(action).length > 10240) {
+                        //Dynamo 저장 한계 (400KB) 때문에 액션 밸류가 300KB가 넘으면 타입만 저장
+                        if (JSON.stringify(action).length > 102400 * 3) {
                             delete action['raw']
                             action['inspection'] = JSON.stringify({
                                 type_id: action['typeId'],
                                 isHuge: true
                             })
-                            console.log(tx)
                         }
                     })
             })
@@ -382,6 +382,7 @@ class DynamoRepository {
         console.timeEnd('Validate AccountTransactions', involvedCount, count)
 
         if (involvedCount != count) {
+            console.error(involvedCount, count)
             return false
         }
 

@@ -49,6 +49,7 @@ class Dynamodb {
         await this.createTable('LatestBlocks')
         await this.createTable('Transaction')
         await this.createTable('WebsocketConnection')
+        await this.createTable('ShopHistory')
     }
 }
 
