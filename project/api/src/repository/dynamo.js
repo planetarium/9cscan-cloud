@@ -534,6 +534,33 @@ class Fetcher {
 
         return Items.filter(({refreshBlockIndex}) => refreshBlockIndex === maxRefreshBlockIndex)
     }
+
+    async getCahceWithChunk(cacheKey, chunkSize = 1024) {
+        const baseCache = await this.getCache(cacheKey);
+        if (!baseCache) {
+            return null
+        }
+
+        const chunkIndex = new Array(baseCache.value).fill(0).map((_, i) => i)
+        let data = '';
+        for (let i = 0; i < chunkIndex.length; i += chunkSize) {
+            const chunk = await this.getCache(`${cacheKey}-${i}`);
+            if (!chunk) {
+                return null
+            }
+            data += chunk.value;
+        }
+        return JSON.parse(data);
+    }
+
+    async setCacheWithChunk(cacheKey, data, chunkSize = 1024) {
+        const dataString = JSON.stringify(data);
+        const chunkCount = Math.ceil(dataString.length / chunkSize);
+        await this.setCache(cacheKey, {value: chunkCount});
+        for (let i = 0; i < chunkCount; i++) {
+            await this.setCache(`${cacheKey}-${i}`, {value: dataString.slice(i * chunkSize, (i + 1) * chunkSize)});
+        }
+    }
     
     async getCache(cacheKey) {
         let {Items} = await client.query({
