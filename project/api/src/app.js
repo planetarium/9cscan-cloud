@@ -21,7 +21,7 @@ app.get('/blocks/:hashOrIndex', async function(req, res) {
 
 app.get('/arena', async (req, res) => {
   const cacheKey = 'LastBlockIndex'
-  const cached = await dynamo.getCache(cacheKey)
+  const cached = await dynamo.getCahceWithChunk(cacheKey)
   if (cached) return res.json(cached);
 
   const lastBlockIndex = await ncc.getLatestBlockIndex();
@@ -34,7 +34,7 @@ app.get('/arena', async (req, res) => {
     currentBlockIndex = result.endBlockIndex + 1;
   }
 
-  await dynamo.setCache(cacheKey, arenaList);
+  await dynamo.setCacheWithChunk(cacheKey, arenaList);
 
   res.json(arenaList);
 });
@@ -43,10 +43,10 @@ app.get('/arena/:championshipId/:round', async (req, res) => {
   const {championshipId, round} = req.params;
   const cacheKey = `ArenaParticipants_${championshipId}_${round}`;
 
-  let arenaParticipants = await dynamo.getCache(cacheKey)
+  let arenaParticipants = await dynamo.getCahceWithChunk(cacheKey)
   if (!arenaParticipants) {
     arenaParticipants = await ncc.getArenaParticipants(parseInt(championshipId, 10), parseInt(round, 10));
-    await dynamo.setCache(cacheKey, arenaParticipants);
+    await dynamo.setCacheWithChunk(cacheKey, arenaParticipants);
   }
 
   let {page, limit} = req.query;
