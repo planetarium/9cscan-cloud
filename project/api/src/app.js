@@ -20,22 +20,45 @@ app.get('/blocks/:hashOrIndex', async function(req, res) {
 });
 
 app.get('/arena', async (req, res) => {
+  const cacheKey = 'LastBlockIndex'
+  const cached = await dynamo.getCache(cacheKey)
+  if (cached) return res.json(cached);
+
   const lastBlockIndex = await ncc.getLatestBlockIndex();
 
   let arenaList = [];
   let currentBlockIndex = 1;
+  let seasons = [{ season: 1, types: [] }];
   while (currentBlockIndex <= lastBlockIndex) {
     const result = await ncc.getBattleArenaInfo(currentBlockIndex);
+    const currentSeason = seasons[seasons.length - 1];
+    if (currentSeason.types.find((type) => type === result.arenaType)) {
+      result.season = currentSeason.season + 1;
+      seasons.push({ season: result.season, types: [result.arenaType] });
+    } else {
+      result.season = currentSeason.season;
+      currentSeason.types.push(result.arenaType);
+    }
     arenaList = [...arenaList, result];
     currentBlockIndex = result.endBlockIndex + 1;
   }
+  arenaList = arenaList.reverse();
+  arenaList[0].isCurrent = true;
+
+  await dynamo.setCache(cacheKey, arenaList);
 
   res.json(arenaList);
 });
 
 app.get('/arena/:championshipId/:round', async (req, res) => {
   const {championshipId, round} = req.params;
-  let arenaParticipants = await ncc.getArenaParticipants(parseInt(championshipId, 10), parseInt(round, 10));
+  const cacheKey = `ArenaParticipants_${championshipId}_${round}`;
+
+  let arenaParticipants = await dynamo.getCache(cacheKey)
+  if (!arenaParticipants) {
+    arenaParticipants = await ncc.getArenaParticipants(parseInt(championshipId, 10), parseInt(round, 10));
+    await dynamo.setCache(cacheKey, arenaParticipants);
+  }
 
   let {page, limit} = req.query;
   page = parseInt(page, 10) || 1;
