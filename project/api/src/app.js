@@ -24,11 +24,22 @@ app.get('/arena', async (req, res) => {
 
   let arenaList = [];
   let currentBlockIndex = 1;
+  let seasons = [{ season: 1, types: [] }];
   while (currentBlockIndex <= lastBlockIndex) {
     const result = await ncc.getBattleArenaInfo(currentBlockIndex);
+    const currentSeason = seasons[seasons.length - 1];
+    if (currentSeason.types.find((type) => type === result.arenaType)) {
+      result.season = currentSeason.season + 1;
+      seasons.push({ season: result.season, types: [result.arenaType] });
+    } else {
+      result.season = currentSeason.season;
+      currentSeason.types.push(result.arenaType);
+    }
     arenaList = [...arenaList, result];
     currentBlockIndex = result.endBlockIndex + 1;
   }
+  arenaList = arenaList.reverse();
+  arenaList[0].isCurrent = true;
 
   res.json(arenaList);
 });
