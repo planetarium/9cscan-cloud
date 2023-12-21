@@ -20,6 +20,10 @@ app.get('/blocks/:hashOrIndex', async function(req, res) {
 });
 
 app.get('/arena', async (req, res) => {
+  const cacheKey = 'LastBlockIndex'
+  const cached = await dynamo.getCache(cacheKey)
+  if (cached) return res.json(cached);
+
   const lastBlockIndex = await ncc.getLatestBlockIndex();
 
   let arenaList = [];
@@ -30,12 +34,20 @@ app.get('/arena', async (req, res) => {
     currentBlockIndex = result.endBlockIndex + 1;
   }
 
+  await dynamo.setCache(cacheKey, arenaList);
+
   res.json(arenaList);
 });
 
 app.get('/arena/:championshipId/:round', async (req, res) => {
   const {championshipId, round} = req.params;
-  let arenaParticipants = await ncc.getArenaParticipants(parseInt(championshipId, 10), parseInt(round, 10));
+  const cacheKey = `ArenaParticipants_${championshipId}_${round}`;
+
+  let arenaParticipants = await dynamo.getCache(cacheKey)
+  if (!arenaParticipants) {
+    arenaParticipants = await ncc.getArenaParticipants(parseInt(championshipId, 10), parseInt(round, 10));
+    await dynamo.setCache(cacheKey, arenaParticipants);
+  }
 
   let {page, limit} = req.query;
   page = parseInt(page, 10) || 1;
