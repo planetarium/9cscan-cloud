@@ -535,7 +535,7 @@ class Fetcher {
         return Items.filter(({refreshBlockIndex}) => refreshBlockIndex === maxRefreshBlockIndex)
     }
 
-    async getShopHistory({itemSubType, grade, ticker, itemId, options, level, before, limit = 20}) {
+    async getShopHistory({itemSubType, grade, from, to, ticker, itemId, options, level, before, limit = 20}) {
         let param = {
             TableName: prefix("ShopHistory"),
             IndexName: "block-index",
@@ -634,6 +634,22 @@ class Fetcher {
                 ExpressionAttributeNames  : {"#key": "ticker"},
                 ExpressionAttributeValues: {":value": ticker},
             }
+        } else if (from) {
+            param = {
+                ...param,
+                IndexName: "from-index",
+                KeyConditionExpression: "#key = :value",
+                ExpressionAttributeNames  : {"#key": "from"},
+                ExpressionAttributeValues: {":value": from},
+            }
+        } else if (to) {
+            param = {
+                ...param,
+                IndexName: "to-index",
+                KeyConditionExpression: "#key = :value",
+                ExpressionAttributeNames  : {"#key": "to"},
+                ExpressionAttributeValues: {":value": to},
+            }
         }
 
         if (before) {
@@ -691,7 +707,7 @@ class Fetcher {
         })
     }
 
-    async getCahceWithChunk(cacheKey, chunkSize = 1024) {
+    async getCahceWithChunk(cacheKey, chunkSize = 200000) {
         const baseCache = await this.getCache(cacheKey);
         if (!baseCache) {
             return null
@@ -709,7 +725,7 @@ class Fetcher {
         return JSON.parse(data);
     }
 
-    async setCacheWithChunk(cacheKey, data, chunkSize = 1024) {
+    async setCacheWithChunk(cacheKey, data, chunkSize = 200000) {
         const dataString = JSON.stringify(data);
         const chunkCount = Math.ceil(dataString.length / chunkSize);
         await this.setCache(cacheKey, {value: chunkCount});

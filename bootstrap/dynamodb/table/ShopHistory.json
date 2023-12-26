@@ -14,6 +14,14 @@
             "AttributeType": "N"
         },
         {
+            "AttributeName": "from",
+            "AttributeType": "S"
+        },
+        {
+            "AttributeName": "to",
+            "AttributeType": "S"
+        },
+        {
             "AttributeName": "ticker",
             "AttributeType": "S"
         },
@@ -71,6 +79,38 @@
                 {
                     "KeyType": "HASH",
                     "AttributeName": "type"
+                },
+                {
+                    "KeyType": "RANGE",
+                    "AttributeName": "blockIndex"
+                }
+            ]
+        },
+        {
+            "IndexName": "from-index",
+            "Projection": {
+                "ProjectionType": "KEYS_ONLY"
+            },
+            "KeySchema": [
+                {
+                    "KeyType": "HASH",
+                    "AttributeName": "from"
+                },
+                {
+                    "KeyType": "RANGE",
+                    "AttributeName": "blockIndex"
+                }
+            ]
+        },
+        {
+            "IndexName": "to-index",
+            "Projection": {
+                "ProjectionType": "KEYS_ONLY"
+            },
+            "KeySchema": [
+                {
+                    "KeyType": "HASH",
+                    "AttributeName": "to"
                 },
                 {
                     "KeyType": "RANGE",

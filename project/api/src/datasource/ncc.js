@@ -3,6 +3,7 @@ const axios = require("axios")
 class NccDatasource {
   constructor() {
     this.endpoints = JSON.parse(process.env.graphqlEndpoints)
+    this.dpEndpoint = process.env.dpEndpoint
   }
   async getAccountState(address, endpointIndex=0) {
     let endpoint = this.endpoints[endpointIndex]
@@ -201,10 +202,9 @@ class NccDatasource {
 
   async getBattleArenaInfo(index, endpointIndex = 1) {
     try {
-      let endpoint = this.endpoints[endpointIndex]
       let {data} = await axios({
         method: 'POST',
-        url: endpoint,
+        url: this.dpEndpoint,
         data: {
           variables:{ index },
           query: `query getBattleArenaInfo($index: Long!) {
@@ -225,10 +225,9 @@ class NccDatasource {
   }
   async getArenaParticipants(championshipId, round, endpointIndex = 1) {
     try {
-      let endpoint = this.endpoints[endpointIndex]
       let {data} = await axios({
         method: 'POST',
-        url: endpoint,
+        url: this.dpEndpoint,
         data: {
           variables:{ championshipId, round },
           query: `query getBattleArenaInfo($championshipId: Int!, $round: Int!) {
@@ -292,11 +291,10 @@ class NccDatasource {
 
   async getArenaParticipantsByAvatarAddress(avatarAddress = '0x0000000000000000000000000000000000000000', endpointIndex = 0) {
     try {
-      let endpoint = this.endpoints[endpointIndex]
       let avatarAddress = '';
       let {data} = await axios({
         method: 'POST',
-        url: endpoint,
+        url: this.dpEndpoint,
         data: {
           variables: { avatarAddress },
           query: `query getArena($avatarAddress: Address) {
