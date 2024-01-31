@@ -54,18 +54,23 @@ class DynamoRepository {
     async saveBlock(block) {
         console.log('Start Save Block')
         console.time('Save Block')
-        block.hash = block.hash.toLowerCase()
-        block.miner = block.miner.toLowerCase()
-        block.transactionIds = block.transactions.map(t => t.id.toLowerCase())
-        block.transactionCount = block.transactions.length
-        block.updateTime = new Date().toISOString()
-        block['type'] = 'B'
+        try {
+            block.hash = block.hash.toLowerCase()
+            block.miner = block.miner.toLowerCase()
+            block.transactionIds = block.transactions.map(t => t.id.toLowerCase())
+            block.transactionCount = block.transactions.length
+            block.updateTime = new Date().toISOString()
+            block['type'] = 'B'
 
-
-        await this.client.put({
-            TableName: prefix("Block"),
-            Item: block
-        }).promise()
+            await this.client.put({
+                TableName: prefix("Block"),
+                Item: {...block, transactions: []}
+            }).promise()
+        } catch(e) {
+            console.error(block)
+            console.error(e)
+            throw e
+        }
         console.timeEnd('Save Block')
     }
 
@@ -114,6 +119,7 @@ class DynamoRepository {
                 tx.id = tx.id.toLowerCase()
                 tx.signer = tx.signer.toLowerCase()
                 tx.blockIndex = block.index
+                tx.blockTimestamp = block.timestamp
                 tx.updateTime = new Date().toISOString()
                 tx.updatedAddresses = tx.updatedAddresses.map(addr => addr.toLowerCase())
             })
@@ -279,29 +285,38 @@ class DynamoRepository {
                     .forEach(action => {
                         let actionData = parseAction(action)
                         action['typeId'] = actionData['type_id']
-
                         //transfer_asset# 의 경우 recipient를 updatedAddress에 강제로 넣어줌.
                         try {
                             if (action['typeId'].startsWith('transfer') && actionData['values'] && actionData['values']['recipient']) {
-                                const recipient = actionData['values']['recipient']
-                                const found = tx.updatedAddresses.find(addr => addr.toLowerCase() === recipient.toLowerCase())
-                                if (!found) {
-                                    tx.updatedAddresses = [...tx.updatedAddresses, actionData['values']['recipient']]
-                                }
+                                tx.updatedAddresses = [...tx.updatedAddresses, actionData['values']['recipient']]
 
+                            } else if (action['typeId'].startsWith('mint_assets') && actionData['values'] && actionData['values'].length >= 2) {
+                                for (let i = 1; i < actionData['values'].length; i++) {
+                                    const recipient = actionData['values'][i][0]
+                                    tx.updatedAddresses = [...tx.updatedAddresses, recipient]
+                                }
+                            } else if (action['typeId'].startsWith('register_product') && actionData['values'] && actionData['values']['a']) {
+                                const avatar = actionData['values']['a']
+                                tx.updatedAddresses = [...tx.updatedAddresses, avatar]
+                            } else if (action['typeId'].startsWith('buy_product') && actionData['values'] && actionData['values']['p']) {
+                                const avatar = actionData['values']['a']
+
+                                const sellers = actionData['values']['p'].map(p => p[2])
+                                tx.updatedAddresses = [...tx.updatedAddresses, ...sellers, avatar]
                             }
+
+                            tx.updatedAddresses = _.uniq(tx.updatedAddresses.map(v => v.toLowerCase()))
                         } catch(e) {
                             console.log(e)
                         }
 
-                        //Dynamo 저장 한계 (400KB) 때문에 액션 밸류가 10KB가 넘으면 타입만 저장
-                        if (JSON.stringify(action).length > 10240) {
+                        //Dynamo 저장 한계 (400KB) 때문에 액션 밸류가 300KB가 넘으면 타입만 저장
+                        if (JSON.stringify(action).length > 102400 * 3) {
                             delete action['raw']
                             action['inspection'] = JSON.stringify({
                                 type_id: action['typeId'],
                                 isHuge: true
                             })
-                            console.log(tx)
                         }
                     })
             })
@@ -367,6 +382,7 @@ class DynamoRepository {
         console.timeEnd('Validate AccountTransactions', involvedCount, count)
 
         if (involvedCount != count) {
+            console.error(involvedCount, count)
             return false
         }
 

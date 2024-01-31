@@ -33,10 +33,6 @@
                     "accountUpdated"
                 ]
             },
-            "ProvisionedThroughput": {
-                "WriteCapacityUnits": 20,
-                "ReadCapacityUnits": 20
-            },
             "KeySchema": [
                 {
                     "KeyType": "HASH",
@@ -58,10 +54,6 @@
                     "accountUpdated"
                 ]
             },
-            "ProvisionedThroughput": {
-                "WriteCapacityUnits": 20,
-                "ReadCapacityUnits": 20
-            },
             "KeySchema": [
                 {
                     "KeyType": "HASH",
@@ -78,10 +70,6 @@
             "Projection": {
                 "ProjectionType": "KEYS_ONLY"
             },
-            "ProvisionedThroughput": {
-                "WriteCapacityUnits": 20,
-                "ReadCapacityUnits": 20
-            },
             "KeySchema": [
                 {
                     "KeyType": "HASH",
@@ -94,10 +82,7 @@
             ]
         }
     ],
-    "ProvisionedThroughput": {
-        "WriteCapacityUnits": 20,
-        "ReadCapacityUnits": 20
-    },
+    "BillingMode": "PAY_PER_REQUEST",
     "KeySchema": [
         {
             "KeyType": "HASH",

@@ -69,7 +69,11 @@ class Fetcher {
     }
     
     async getBlockByIndexWithTxs(index) {
-        return this.getBlockByIndex(index, BLOCK_FULL_ATTRS)
+        const block = await this.getBlockByIndex(index, BLOCK_FULL_ATTRS)
+        if (block.transactions.length === 0 && block.transactionCount > 0) {
+            block.transactions = await this.getTransactionsByBlock(index)
+        }
+        return block;
     }
     
     async getBlockByIndex(index, attrs = BLOCK_LIST_ATTRS) {
@@ -271,14 +275,15 @@ class Fetcher {
     }
     
     async getTransactionsByBlock(blockIndex) {
-        let {Items} = await client.query({TableName: prefix("Block"),
-            ProjectionExpression: 'transactions',
-            KeyConditionExpression: "#index = :index", 
-            ExpressionAttributeNames  : {"#index": "index"}, 
-            ExpressionAttributeValues: {":index": blockIndex * 1}}).promise()
-        
-        if (Items[0] && Items[0].transactions && Items[0].transactions.length > 0) {
-            return _.sortBy(Items[0].transactions, tx => -new Date(tx['timestamp']))
+        let {Items} = await client.query({TableName: prefix("Transaction"),
+            IndexName: "block-index",
+            KeyConditionExpression: "#blockIndex = :blockIndex",
+            ExpressionAttributeNames  : {"#blockIndex": "blockIndex"},
+            ExpressionAttributeValues: {":blockIndex": blockIndex * 1}}).promise()
+
+        let transactions = await this.getTransactionsByIds(Items.map(item => item.id))
+        if (transactions && transactions.length > 0) {
+            return _.sortBy(transactions, tx => -tx['nonce'])
         }
         
         return []
@@ -304,7 +309,7 @@ class Fetcher {
     async getTransactionsByActionType({action, before, limit = 20}) {
         let param = {
             TableName: prefix("Action"),
-            IndexName: "typeId-index",
+            IndexName: "typeId-blockIndex-index",
             KeyConditionExpression: "#typeId = :typeId",
             ProjectionExpression: "txIdSeq",
             ExpressionAttributeNames  : {"#typeId": "typeId"},
@@ -318,8 +323,8 @@ class Fetcher {
             let {Items} = await client.query({
                 TableName: prefix("Action"),
                 KeyConditionExpression: "#txIdSeq = :before",
-                ProjectionExpression: "txIdSeq, #timestamp, typeId",
-                ExpressionAttributeNames  : {"#txIdSeq": "txIdSeq", "#timestamp": "timestamp"},
+                ProjectionExpression: "txIdSeq, blockIndex, typeId",
+                ExpressionAttributeNames  : {"#txIdSeq": "txIdSeq"},
                 ExpressionAttributeValues: {
                     ":before": before
                 }
@@ -358,7 +363,7 @@ class Fetcher {
         } else {
             blockId = await this.getLatestBlockIndex()
         }
-        
+
         let transactions = []
         for (let i = 0; i < 20; i++) {
             let txs = await this.getTransactionsByBlock(blockId - i)
@@ -530,7 +535,179 @@ class Fetcher {
         return Items.filter(({refreshBlockIndex}) => refreshBlockIndex === maxRefreshBlockIndex)
     }
 
-    async getCahceWithChunk(cacheKey, chunkSize = 1024) {
+    async getShopHistory({itemSubType, grade, from, to, ticker, itemId, options, level, before, limit = 20}) {
+        let param = {
+            TableName: prefix("ShopHistory"),
+            IndexName: "block-index",
+            KeyConditionExpression: "#type = :type",
+            ExpressionAttributeNames  : {"#type": "type"},
+            ExpressionAttributeValues: {
+                ":type": 'BUY'
+            },
+            ScanIndexForward: false,
+            Limit: limit
+        }
+
+        if (itemSubType) {
+            if (grade) {
+                if (options && level) {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-level-options-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade_level_options"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}_${level}_${options}`},
+                    }
+                } else if (options) {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-options-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade_options"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}_${options}`},
+                    }
+                } else if (level) {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-level-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade_level"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}_${level}`},
+                    }
+                } else {
+                    param = {
+                        ...param,
+                        IndexName: "itemSubType-grade-index",
+                        KeyConditionExpression: "#key = :value",
+                        ExpressionAttributeNames  : {"#key": "itemSubType_grade"},
+                        ExpressionAttributeValues: {":value": `${itemSubType}_${grade}`},
+                    }
+                }
+            } else {
+                param = {
+                    ...param,
+                    IndexName: "itemSubType-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemSubType"},
+                    ExpressionAttributeValues: {":value": Number(itemSubType)},
+                }
+            }
+        } else if (itemId) {
+            if (options && level) {
+                param = {
+                    ...param,
+                    IndexName: "itemId-level-options-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId_level_options"},
+                    ExpressionAttributeValues: {":value": `${itemId}_${level}_${options}`},
+                }
+            } else if (options) {
+                param = {
+                    ...param,
+                    IndexName: "itemId-options-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId_options"},
+                    ExpressionAttributeValues: {":value": `${itemId}_${options}`},
+                }
+            } else if (level) {
+                param = {
+                    ...param,
+                    IndexName: "itemId-level-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId_level"},
+                    ExpressionAttributeValues: {":value": `${itemId}_${level}`},
+                }
+            } else {
+                param = {
+                    ...param,
+                    IndexName: "itemId-index",
+                    KeyConditionExpression: "#key = :value",
+                    ExpressionAttributeNames  : {"#key": "itemId"},
+                    ExpressionAttributeValues: {":value": Number(itemId)},
+                }
+            }
+        } else if (ticker) {
+            param = {
+                ...param,
+                IndexName: "ticker-index",
+                KeyConditionExpression: "#key = :value",
+                ExpressionAttributeNames  : {"#key": "ticker"},
+                ExpressionAttributeValues: {":value": ticker},
+            }
+        } else if (from) {
+            param = {
+                ...param,
+                IndexName: "from-index",
+                KeyConditionExpression: "#key = :value",
+                ExpressionAttributeNames  : {"#key": "from"},
+                ExpressionAttributeValues: {":value": from},
+            }
+        } else if (to) {
+            param = {
+                ...param,
+                IndexName: "to-index",
+                KeyConditionExpression: "#key = :value",
+                ExpressionAttributeNames  : {"#key": "to"},
+                ExpressionAttributeValues: {":value": to},
+            }
+        }
+
+        if (before) {
+            param['ExclusiveStartKey'] = JSON.parse(before)
+        }
+
+        let {Items, LastEvaluatedKey} = await client.query(param).promise()
+
+        let response = {}
+        let txIds = Items.map(item => item.txId)
+
+        let historyItems = await this.getShopHistoryByTxs(txIds)
+
+        response['items'] = historyItems
+        if (LastEvaluatedKey) {
+            response['before'] = JSON.stringify(LastEvaluatedKey)
+        }
+
+        return response
+    }
+
+    async getShopHistoryByTxs(ids) {
+        let txs = []
+
+        await forEachSemaphore(ids, async (id) => {
+            let job = this.getShopHistoryByTx(id)
+            txs.push(job)
+            await job
+        }, 10)
+
+        for (let i = 0; i < txs.length; i++) {
+            txs[i] = await txs[i]
+        }
+
+        return txs
+    }
+
+    async getShopHistoryByTx(id) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let data = await client.query({TableName: prefix("ShopHistory"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "txId"}, ExpressionAttributeValues: {":id": id.toLowerCase()}}).promise()
+                resolve(data['Items'][0])
+            } catch(e) {
+                //retry
+                setTimeout(async () => {
+                    try {
+                        let data = await client.query({TableName: prefix("ShopHistory"), KeyConditionExpression: "#id = :id", ExpressionAttributeNames  : {"#id": "txId"}, ExpressionAttributeValues: {":id": id.toLowerCase()}}).promise()
+                        resolve(data['Items'][0])
+                    } catch(e) {
+                        reject(e)
+                    }
+                }, 100)
+            }
+
+        })
+    }
+
+    async getCahceWithChunk(cacheKey, chunkSize = 200000) {
         const baseCache = await this.getCache(cacheKey);
         if (!baseCache) {
             return null
@@ -548,7 +725,7 @@ class Fetcher {
         return JSON.parse(data);
     }
 
-    async setCacheWithChunk(cacheKey, data, chunkSize = 1024) {
+    async setCacheWithChunk(cacheKey, data, chunkSize = 200000) {
         const dataString = JSON.stringify(data);
         const chunkCount = Math.ceil(dataString.length / chunkSize);
         await this.setCache(cacheKey, {value: chunkCount});
@@ -556,7 +733,6 @@ class Fetcher {
             await this.setCache(`${cacheKey}-${i}`, {value: dataString.slice(i * chunkSize, (i + 1) * chunkSize)});
         }
     }
-    
     async getCache(cacheKey) {
         let {Items} = await client.query({
             TableName: prefix("Cache"),

@@ -1,11 +1,10 @@
 const fs = require("fs")
 const AWS = require("aws-sdk");
 
-
 function loadRootConfig() {
     let config = {}
     try {
-        config = JSON.parse(fs.readFileSync(__dirname + "/../../../.config"))
+        config = JSON.parse(fs.readFileSync(__dirname + "/../../.config"))
     } catch(e) {
         console.log(e)
     }

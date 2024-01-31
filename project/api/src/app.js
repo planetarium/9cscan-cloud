@@ -183,6 +183,11 @@ app.get('/accounts/:account/transactions/count', async function(req, res) {
   res.send({count: Count})
 });
 
+app.get('/shopHistory', async function(req, res) {
+  const result = await dynamo.getShopHistory(req.query)
+  res.send(result)
+})
+
 const CMC_KEYS = JSON.parse(process.env.CMC_KEYS || '{}')
 app.get('/price', async function(req, res) {
   let apiKeys = Object.values(CMC_KEYS)
